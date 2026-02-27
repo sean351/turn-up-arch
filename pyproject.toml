@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "turnup"
-version = "1.1.0"
+version = "1.2.0"
 description = "USB serial knob/button mixer daemon for PipeWire/PulseAudio on Linux"
 readme = "README.md"
 license = { text = "MIT" }

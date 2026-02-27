@@ -33,8 +33,8 @@ log = logging.getLogger("turnupd")
 
 # Maximum raw ADC value reported by the hardware.
 KNOB_MAX: int = 1012
-# Maximum output volume multiplier (1.5 = 150 %).
-VOLUME_MAX: float = 1.5
+# Maximum output volume multiplier (1.0 = 100 %).
+VOLUME_MAX: float = 1.0
 # Number of physical knobs (and therefore LED groups).
 NUM_KNOBS: int = 5
 # Number of LEDs per knob.
