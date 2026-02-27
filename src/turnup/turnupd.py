@@ -13,6 +13,7 @@ even when no knob is being moved.
 """
 
 import logging
+import os
 import signal
 import subprocess
 import sys
@@ -21,7 +22,7 @@ import time
 import pulsectl
 import serial
 
-from turnup.config import get_knob_led_cfg, get_led_color, load_config
+from turnup.config import DEFAULT_CONFIG_PATH, get_knob_led_cfg, get_led_color, load_config
 
 logging.basicConfig(
     level=logging.INFO,
@@ -359,6 +360,13 @@ def main() -> None:
     knob_norms = init_knob_norms(config, pulse)
     buf        = bytearray()
 
+    # Track config file mtime so we can restart when it changes.
+    try:
+        config_mtime: float | None = os.stat(DEFAULT_CONFIG_PATH).st_mtime
+    except OSError:
+        config_mtime = None
+    last_config_check = time.monotonic()
+
     def _shutdown(sig: int, _frame: object) -> None:
         log.info("Received signal %d — shutting down", sig)
         pulse.close()
@@ -376,22 +384,34 @@ def main() -> None:
 
                 while True:
                     data = ser.read(64)
-                    if not data:
-                        continue
-                    buf.extend(data)
-                    messages, buf = parse_messages(buf)
-                    for msg in messages:
-                        if msg["type"] == "knob":
-                            handle_knob(
-                                msg["id"], msg["value"],
-                                config, pulse, ser, knob_norms,
-                            )
-                        elif msg["type"] == "button":
-                            handle_button(
-                                msg["id"], msg["action"], config, pulse
-                            )
-                        elif msg["type"] == "heartbeat":
-                            send_leds(ser, all_led_colors(config, knob_norms))
+                    if data:
+                        buf.extend(data)
+                        messages, buf = parse_messages(buf)
+                        for msg in messages:
+                            if msg["type"] == "knob":
+                                handle_knob(
+                                    msg["id"], msg["value"],
+                                    config, pulse, ser, knob_norms,
+                                )
+                            elif msg["type"] == "button":
+                                handle_button(
+                                    msg["id"], msg["action"], config, pulse
+                                )
+                            elif msg["type"] == "heartbeat":
+                                send_leds(ser, all_led_colors(config, knob_norms))
+
+                    # Check for config changes every 2 s (serial read timeout = 0.1 s).
+                    now = time.monotonic()
+                    if now - last_config_check >= 2.0:
+                        last_config_check = now
+                        try:
+                            new_mtime = os.stat(DEFAULT_CONFIG_PATH).st_mtime
+                            if config_mtime is not None and new_mtime != config_mtime:
+                                log.info("Config changed — restarting daemon")
+                                pulse.close()
+                                os.execv(sys.executable, [sys.executable] + sys.argv)
+                        except OSError:
+                            pass
 
         except serial.SerialException as exc:
             log.warning("Serial error: %s — retrying in 3 s", exc)

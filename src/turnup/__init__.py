@@ -1,3 +1,3 @@
 """Turn Up — USB serial mixer daemon for PipeWire/PulseAudio."""
 
-__version__ = "0.3.2"
+__version__ = "0.3.3"
