@@ -53,7 +53,7 @@ jobs:
           	depends = python-pyserial
           	depends = python-pulsectl
           	depends = pipewire-pulse
-          	optdepends = playerctl: media key support via button commands
+          	depends = playerctl
           	optdepends = pulseaudio: alternative to pipewire-pulse
           	install = turnupd.install
           	source = ${PKGNAME}-${VERSION}.tar.gz::https://github.com/${{ github.repository }}/archive/refs/tags/v${VERSION}.tar.gz

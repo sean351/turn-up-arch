@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "turnup"
-version = "0.3.3"
+version = "1.1.0"
 description = "USB serial knob/button mixer daemon for PipeWire/PulseAudio on Linux"
 readme = "README.md"
 license = { text = "MIT" }
@@ -12,6 +12,7 @@ requires-python = ">=3.10"
 dependencies = [
     "pyserial>=3.5",
     "pulsectl>=22.0",
+    "tomli>=1.1; python_version < '3.11'",
 ]
 
 [project.scripts]

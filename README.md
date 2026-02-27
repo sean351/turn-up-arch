@@ -11,7 +11,7 @@ arbitrary shell commands.
 - [pyserial](https://pypi.org/project/pyserial/)
 - [pulsectl](https://pypi.org/project/pulsectl/)
 - PipeWire (with `pipewire-pulse`) or PulseAudio
-- `playerctl` *(optional — for media key bindings)*
+- `playerctl`
 
 ## Installation
 
@@ -40,30 +40,54 @@ pip install .
 ## Configuration
 
 On first run `turnupd` writes a default config to
-`~/.config/turnup/config.json`.  Edit it to match your device layout.
-See [`contrib/config.example.json`](contrib/config.example.json) for a
-fully commented example.
+`~/.config/turnup/config.toml`.  Edit it to match your device layout.
+See [`contrib/config.example.toml`](contrib/config.example.toml) for a
+fully annotated example.
 
-```jsonc
-{
-  "port": "/dev/ttyACM0",
-  "baud": 115200,
+```toml
+port = "/dev/ttyACM0"
+baud = 115200
 
-  "knobs": {
-    "0": { "action": "sink_volume",  "target": "default" },
-    "1": { "action": "group_volume", "targets": ["vlc", "spotify"] },
-    "2": { "action": "app_volume",   "target": "Brave" },
-    "3": { "action": "source_volume","target": "default" }
-  },
+[leds]
+mode       = "volume"
+low_color  = [255, 0, 0]   # red   at 0 %
+high_color = [0, 255, 0]   # green at 100 %
 
-  "buttons": {
-    "0": { "action": "mute_sink",  "target": "default" },
-    "1": { "action": "command",    "target": "playerctl previous" },
-    "2": { "action": "command",    "target": "playerctl play-pause" },
-    "3": { "action": "command",    "target": "playerctl next" },
-    "4": { "action": "mute_source","target": "default" }
-  }
-}
+[knobs.0]
+action = "sink_volume"
+target = "default"
+
+[knobs.1]
+action  = "group_volume"
+targets = ["vlc", "spotify"]
+
+[knobs.2]
+action = "app_volume"
+target = "Brave"
+
+[knobs.3]
+action = "source_volume"
+target = "default"
+
+[buttons.0]
+action = "mute_sink"
+target = "default"
+
+[buttons.1]
+action = "command"
+target = "playerctl previous"
+
+[buttons.2]
+action = "command"
+target = "playerctl play-pause"
+
+[buttons.3]
+action = "command"
+target = "playerctl next"
+
+[buttons.4]
+action = "mute_source"
+target = "default"
 ```
 
 ### Knob actions

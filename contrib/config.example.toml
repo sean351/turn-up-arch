@@ -1,0 +1,98 @@
+# turnup configuration — fully annotated example.
+# Copy this file to ~/.config/turnup/config.toml and edit to taste.
+# Changes are picked up automatically (no restart needed).
+
+# Serial port your device enumerates as (check `ls /dev/ttyACM*`).
+port = "/dev/ttyACM0"
+baud = 115200
+
+# ── LED settings ──────────────────────────────────────────────────────────────
+[leds]
+# Global LED behaviour — can be overridden per-knob via a [knobs.N.led] block.
+#
+# mode: "volume"  — fade from low_color → high_color based on the knob position
+#       "static"  — always show high_color regardless of volume
+#       "off"     — LEDs disabled
+mode = "volume"
+low_color  = [255, 0, 0]   # red   at 0 %
+high_color = [0, 255, 0]   # green at 100 %
+
+# ── Knobs ─────────────────────────────────────────────────────────────────────
+# Available actions:
+#   sink_volume   — output device volume (0–150 %)
+#   source_volume — mic / input volume (0–100 %)
+#   app_volume    — single application matched by name or binary; set target
+#   group_volume  — multiple applications at once; set targets = ["app1", "app2"]
+
+[knobs.0]
+# Master output volume — uses global LED colours
+action = "sink_volume"
+target = "default"
+
+[knobs.1]
+# Media players — custom blue LED to distinguish from the others
+action = "group_volume"
+targets = ["vlc", "spotify", "Cider"]
+
+[knobs.1.led]
+mode       = "volume"
+low_color  = [255, 0, 0]
+high_color = [0, 0, 255]   # blue at 100 %
+
+[knobs.2]
+# Browser — static orange LED (always on, no volume feedback)
+action = "app_volume"
+target = "Brave"
+
+[knobs.2.led]
+mode       = "static"
+high_color = [255, 165, 0]
+
+[knobs.3]
+# Chat apps — LED disabled for this knob
+action = "group_volume"
+targets = ["electron", "discord"]
+
+[knobs.3.led]
+mode = "off"
+
+[knobs.4]
+# Microphone / input — teal LED
+action = "source_volume"
+target = "default"
+
+[knobs.4.led]
+mode       = "volume"
+low_color  = [255, 0, 0]
+high_color = [0, 255, 255]  # teal at 100 %
+
+# ── Buttons ───────────────────────────────────────────────────────────────────
+# Available actions:
+#   mute_sink   — toggle output mute
+#   mute_source — toggle mic mute
+#   command     — run an arbitrary shell command; set target = "command args"
+
+[buttons.0]
+# Mute output
+action = "mute_sink"
+target = "default"
+
+[buttons.1]
+# Previous track (requires playerctl)
+action = "command"
+target = "playerctl previous"
+
+[buttons.2]
+# Play / pause (requires playerctl)
+action = "command"
+target = "playerctl play-pause"
+
+[buttons.3]
+# Next track (requires playerctl)
+action = "command"
+target = "playerctl next"
+
+[buttons.4]
+# Mute microphone
+action = "mute_source"
+target = "default"
