@@ -18,7 +18,7 @@ arbitrary shell commands.
 ### Arch Linux (AUR)
 
 ```sh
-yay -S turnup
+yay -S turn-up-arch
 ```
 
 Or manually:
