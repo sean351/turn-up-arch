@@ -8,7 +8,8 @@ volume control as well as mute toggles and arbitrary shell commands.
 
 LED feedback: after every knob move the device's RGB LEDs are updated to
 reflect the current volume using the per-knob (or global) colour scheme
-from config.
+from config.  LEDs are also refreshed on every heartbeat so they stay lit
+even when no knob is being moved.
 """
 
 import logging
@@ -202,6 +203,79 @@ class PulseController:
         except Exception as exc:
             log.warning("set_app_volume(%r) failed: %s", app_name, exc)
 
+    def get_sink_volume_norm(self, sink_name: str) -> float | None:
+        """Return the current sink volume normalised to 0.0–1.0, or None on error."""
+        try:
+            if sink_name == "default":
+                info = self._pulse.server_info()
+                sink = self._pulse.get_sink_by_name(info.default_sink_name)
+            else:
+                sink = self._pulse.get_sink_by_name(sink_name)
+            return min(1.0, sink.volume.value_flat / VOLUME_MAX)
+        except Exception:
+            return None
+
+    def get_source_volume_norm(self, source_name: str) -> float | None:
+        """Return the current source volume normalised to 0.0–1.0, or None on error."""
+        try:
+            if source_name == "default":
+                info = self._pulse.server_info()
+                source = self._pulse.get_source_by_name(info.default_source_name)
+            else:
+                source = self._pulse.get_source_by_name(source_name)
+            return min(1.0, source.volume.value_flat)
+        except Exception:
+            return None
+
+    def get_app_volume_norm(self, app_name: str) -> float | None:
+        """Return the current app volume normalised to 0.0–1.0, or None if not found."""
+        needle = app_name.lower()
+        try:
+            for inp in self._pulse.sink_input_list():
+                name   = inp.proplist.get("application.name", "")
+                binary = inp.proplist.get("application.process.binary", "")
+                if needle in name.lower() or needle in binary.lower():
+                    return min(1.0, inp.volume.value_flat / VOLUME_MAX)
+        except Exception:
+            pass
+        return None
+
+
+# ── Startup helpers ────────────────────────────────────────────────────────────
+
+def init_knob_norms(config: dict, pulse: PulseController) -> list[float]:
+    """Query PulseAudio for current volumes and return an initial knob_norms list.
+
+    This ensures the LEDs show the correct colour gradient immediately on
+    connect rather than starting from all-zero (low_color) until the user
+    moves each knob.
+    """
+    norms = [0.0] * NUM_KNOBS
+    for knob_id_str, knob_cfg in config.get("knobs", {}).items():
+        try:
+            knob_id = int(knob_id_str)
+        except ValueError:
+            continue
+
+        action = knob_cfg.get("action", "sink_volume")
+        target = knob_cfg.get("target", "default")
+        norm: float | None = None
+
+        if action == "sink_volume":
+            norm = pulse.get_sink_volume_norm(target)
+        elif action == "source_volume":
+            norm = pulse.get_source_volume_norm(target)
+        elif action in ("app_volume", "group_volume"):
+            # For group_volume use the first target; apps may not be running yet.
+            t = target if action == "app_volume" else (knob_cfg.get("targets") or [None])[0]
+            if t:
+                norm = pulse.get_app_volume_norm(t)
+
+        if norm is not None and 0 <= knob_id < NUM_KNOBS:
+            norms[knob_id] = norm
+
+    return norms
+
 
 # ── Event handlers ─────────────────────────────────────────────────────────────
 
@@ -282,7 +356,7 @@ def main() -> None:
     log.info("Turn Up daemon starting — %s @ %d baud", port, baud)
 
     pulse      = PulseController()
-    knob_norms = [0.0] * NUM_KNOBS
+    knob_norms = init_knob_norms(config, pulse)
     buf        = bytearray()
 
     def _shutdown(sig: int, _frame: object) -> None:
@@ -316,6 +390,8 @@ def main() -> None:
                             handle_button(
                                 msg["id"], msg["action"], config, pulse
                             )
+                        elif msg["type"] == "heartbeat":
+                            send_leds(ser, all_led_colors(config, knob_norms))
 
         except serial.SerialException as exc:
             log.warning("Serial error: %s — retrying in 3 s", exc)
