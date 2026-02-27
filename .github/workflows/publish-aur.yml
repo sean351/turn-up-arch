@@ -34,11 +34,32 @@ jobs:
 
       - name: Generate .SRCINFO
         run: |
-          docker run --rm \
-            -v "$PWD:/pkg" \
-            -w /pkg \
-            archlinux:latest \
-            bash -c "useradd -m builder && chown -R builder /pkg && su builder -c 'makepkg --printsrcinfo > .SRCINFO'"
+          VERSION="${{ steps.version.outputs.version }}"
+          SHA="${{ steps.sha256.outputs.sha256 }}"
+          PKGNAME="${{ github.event.repository.name }}"
+          cat > .SRCINFO <<EOF
+          pkgbase = ${PKGNAME}
+          	pkgdesc = USB serial knob/button mixer daemon for PipeWire/PulseAudio on Linux
+          	pkgver = ${VERSION}
+          	pkgrel = 1
+          	url = https://github.com/${{ github.repository }}
+          	arch = any
+          	license = MIT
+          	makedepends = python-build
+          	makedepends = python-installer
+          	makedepends = python-wheel
+          	makedepends = python-hatchling
+          	depends = python
+          	depends = python-pyserial
+          	depends = python-pulsectl
+          	depends = pipewire-pulse
+          	optdepends = playerctl: media key support via button commands
+          	optdepends = pulseaudio: alternative to pipewire-pulse
+          	source = ${PKGNAME}-${VERSION}.tar.gz::https://github.com/${{ github.repository }}/archive/refs/tags/v${VERSION}.tar.gz
+          	sha256sums = ${SHA}
+
+          pkgname = ${PKGNAME}
+          EOF
 
       - name: Set up SSH for AUR
         run: |
