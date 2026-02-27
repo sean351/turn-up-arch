@@ -1,6 +1,6 @@
 # Maintainer: Sean Doran <sdoran35@gmail.com>
 pkgname=turn-up-arch
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=1
 pkgdesc="USB serial knob/button mixer daemon for PipeWire/PulseAudio on Linux"
 arch=('any')
