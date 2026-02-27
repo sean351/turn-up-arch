@@ -7,22 +7,23 @@ arch=('any')
 url="https://github.com/sean351/turn-up-arch"
 license=('MIT')
 depends=(
-    'python>=3.10'
+    'python'
     'python-pyserial'
     'python-pulsectl'
-    'pipewire-pulse'  # or pulseaudio — provides the PulseAudio socket
+    'pipewire-pulse'
 )
 makedepends=(
     'python-build'
     'python-installer'
+    'python-wheel'
     'python-hatchling'
 )
 optdepends=(
     'playerctl: media key support via button commands'
+    'pulseaudio: alternative to pipewire-pulse'
 )
-backup=()
 source=("$pkgname-$pkgver.tar.gz::https://github.com/sean351/turn-up-arch/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP')  # Replace with actual checksum before submitting to AUR
+sha256sums=('SKIP')
 
 build() {
     cd "$pkgname-$pkgver"
