@@ -64,16 +64,19 @@ jobs:
       - name: Set up SSH for AUR
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.AUR_SSH_KEY }}" > ~/.ssh/aur
+          printf '%s' "${{ secrets.AUR_SSH_KEY }}" > ~/.ssh/aur
           chmod 600 ~/.ssh/aur
           ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
-          printf 'Host aur.archlinux.org\n  IdentityFile ~/.ssh/aur\n  User aur\n' >> ~/.ssh/config
-          chmod 600 ~/.ssh/config
+          ssh -i ~/.ssh/aur -o StrictHostKeyChecking=no -T aur@aur.archlinux.org || true
 
       - name: Clone AUR repo
+        env:
+          GIT_SSH_COMMAND: ssh -i ~/.ssh/aur -o StrictHostKeyChecking=no
         run: git clone ssh://aur@aur.archlinux.org/${{ github.event.repository.name }}.git /tmp/aur-pkg
 
       - name: Copy files and push to AUR
+        env:
+          GIT_SSH_COMMAND: ssh -i ~/.ssh/aur -o StrictHostKeyChecking=no
         run: |
           cp PKGBUILD .SRCINFO /tmp/aur-pkg/
           cd /tmp/aur-pkg
