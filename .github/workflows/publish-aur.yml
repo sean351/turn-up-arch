@@ -55,6 +55,7 @@ jobs:
           	depends = pipewire-pulse
           	optdepends = playerctl: media key support via button commands
           	optdepends = pulseaudio: alternative to pipewire-pulse
+          	install = turnupd.install
           	source = ${PKGNAME}-${VERSION}.tar.gz::https://github.com/${{ github.repository }}/archive/refs/tags/v${VERSION}.tar.gz
           	sha256sums = ${SHA}
 
@@ -83,10 +84,10 @@ jobs:
         env:
           GIT_SSH_COMMAND: ssh -i ~/.ssh/aur -o StrictHostKeyChecking=no
         run: |
-          cp PKGBUILD .SRCINFO /tmp/aur-pkg/
+          cp PKGBUILD .SRCINFO turnupd.install /tmp/aur-pkg/
           cd /tmp/aur-pkg
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add PKGBUILD .SRCINFO
+          git add PKGBUILD .SRCINFO turnupd.install
           git commit -m "Update to ${{ github.ref_name }}"
           git push
