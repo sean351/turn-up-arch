@@ -24,8 +24,8 @@ yay -S turnup
 Or manually:
 
 ```sh
-git clone https://aur.archlinux.org/turnup.git
-cd turnup
+git clone https://aur.archlinux.org/turn-up-arch.git
+cd turn-up-arch
 makepkg -si
 ```
 
