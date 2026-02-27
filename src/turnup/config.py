@@ -160,18 +160,13 @@ def load_config(path: str | None = None) -> dict:
     """Load configuration from *path*.
 
     If *path* is ``None`` the XDG-compliant location
-    ``~/.config/turnup/config.json`` is used, falling back to the directory
-    that contains this module for backwards compatibility.
+    ``~/.config/turnup/config.json`` is used.
 
     Returns the parsed and validated configuration dictionary.
     Exits with status 1 on malformed JSON.
     """
     if path is None:
-        if os.path.exists(DEFAULT_CONFIG_PATH):
-            path = DEFAULT_CONFIG_PATH
-        else:
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            path = os.path.join(script_dir, "config.json")
+        path = DEFAULT_CONFIG_PATH
 
     if not os.path.exists(path):
         log.warning("No config.json found at %s — writing defaults", path)
