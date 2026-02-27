@@ -2,21 +2,55 @@
   "port": "/dev/ttyACM0",
   "baud": 115200,
 
+  "leds": {
+    "mode": "volume",
+    "low_color":  [255, 0, 0],
+    "high_color": [0, 255, 0]
+  },
+
   "knobs": {
-    "0": { "action": "sink_volume",   "target": "default" },
-    "1": { "action": "group_volume",  "targets": ["vlc", "spotify", "Cider"] },
-    "2": { "action": "app_volume", "target": "Brave" },
-    "3": { "action": "group_volume",  "targets": ["electron", "discord"] },
-    "4": { "action": "sink_volume",   "target": "default" }
+    "0": {
+      "action": "sink_volume",
+      "target": "default"
+    },
+    "1": {
+      "action": "group_volume",
+      "targets": ["vlc", "spotify", "Cider"],
+      "led": {
+        "mode": "volume",
+        "low_color":  [255, 0, 0],
+        "high_color": [0, 0, 255]
+      }
+    },
+    "2": {
+      "action": "app_volume",
+      "target": "Brave",
+      "led": {
+        "mode": "static",
+        "high_color": [255, 165, 0]
+      }
+    },
+    "3": {
+      "action": "group_volume",
+      "targets": ["electron", "discord"],
+      "led": { "mode": "off" }
+    },
+    "4": {
+      "action": "source_volume",
+      "target": "default",
+      "led": {
+        "mode": "volume",
+        "low_color":  [255, 0, 0],
+        "high_color": [0, 255, 255]
+      }
+    }
   },
 
   "buttons": {
     "0": { "action": "mute_sink",   "target": "default" },
-    "1": { "action": "command", "target": "playerctl previous" },
+    "1": { "action": "command",     "target": "playerctl previous" },
     "2": { "action": "command",     "target": "playerctl play-pause" },
     "3": { "action": "command",     "target": "playerctl next" },
-    "4": { "action": "mute_source",     "target": "default" }
+    "4": { "action": "mute_source", "target": "default" }
   }
 }
-
-

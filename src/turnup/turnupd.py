@@ -5,6 +5,10 @@ turnupd — Turn Up mixer daemon for Linux
 Bridges a USB serial device (knobs + buttons) to PipeWire/PulseAudio via
 pulsectl, mapping hardware inputs to per-sink, per-source, and per-app
 volume control as well as mute toggles and arbitrary shell commands.
+
+LED feedback: after every knob move the device's RGB LEDs are updated to
+reflect the current volume using the per-knob (or global) colour scheme
+from config.
 """
 
 import logging
@@ -16,7 +20,7 @@ import time
 import pulsectl
 import serial
 
-from turnup.config import load_config
+from turnup.config import get_knob_led_cfg, get_led_color, load_config
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,23 +33,16 @@ log = logging.getLogger("turnupd")
 KNOB_MAX: int = 1012
 # Maximum output volume multiplier (1.5 = 150 %).
 VOLUME_MAX: float = 1.5
+# Number of physical knobs (and therefore LED groups).
+NUM_KNOBS: int = 5
+# Number of LEDs per knob.
+LEDS_PER_KNOB: int = 3
 
 
 # ── Protocol parser ────────────────────────────────────────────────────────────
 
 def parse_messages(buf: bytearray) -> tuple[list[dict], bytearray]:
-    """Parse framed messages out of *buf* and return ``(messages, remainder)``.
-
-    Supported frame formats (all delimited by ``0xFE`` … ``0xFF``):
-
-    +-----------+----------------------------+
-    | Heartbeat | ``FE 02 FF``               |
-    +-----------+----------------------------+
-    | Button    | ``FE 06/07 <id> FF``       |
-    +-----------+----------------------------+
-    | Knob      | ``FE 03 <id> <hi> <lo> FF``|
-    +-----------+----------------------------+
-    """
+    """Parse framed messages out of *buf* and return ``(messages, remainder)``."""
     messages: list[dict] = []
     i = 0
     while i < len(buf):
@@ -55,12 +52,10 @@ def parse_messages(buf: bytearray) -> tuple[list[dict], bytearray]:
 
         remaining = len(buf) - i
 
-        # Heartbeat: FE 02 FF  (3 bytes)
         if remaining >= 3 and buf[i + 1] == 0x02 and buf[i + 2] == 0xFF:
             messages.append({"type": "heartbeat"})
             i += 3
 
-        # Button press/release: FE 06/07 <id> FF  (4 bytes)
         elif (
             remaining >= 4
             and buf[i + 1] in (0x06, 0x07)
@@ -73,7 +68,6 @@ def parse_messages(buf: bytearray) -> tuple[list[dict], bytearray]:
             })
             i += 4
 
-        # Knob value: FE 03 <id> <hi> <lo> FF  (6 bytes)
         elif (
             remaining >= 6
             and buf[i + 1] == 0x03
@@ -102,6 +96,39 @@ def knob_to_norm(value: int) -> float:
     return round(value / KNOB_MAX, 4)
 
 
+# ── LED control ────────────────────────────────────────────────────────────────
+
+def build_led_packet(colors: list[tuple[int, int, int]]) -> bytes:
+    """Build the 47-byte LED packet for all 5 knobs.
+
+    Frame format: ``FE 05 [R G B * LEDS_PER_KNOB] * NUM_KNOBS FF``
+    """
+    assert len(colors) == NUM_KNOBS
+    payload = bytearray([0xFE, 0x05])
+    for r, g, b in colors:
+        payload += bytes([r, g, b]) * LEDS_PER_KNOB
+    payload.append(0xFF)
+    return bytes(payload)
+
+
+def send_leds(ser: serial.Serial, colors: list[tuple[int, int, int]]) -> None:
+    """Write an LED packet to the open serial port, swallowing any I/O errors."""
+    try:
+        ser.write(build_led_packet(colors))
+    except serial.SerialException as exc:
+        log.warning("LED write failed: %s", exc)
+
+
+def all_led_colors(
+    config: dict, knob_norms: list[float]
+) -> list[tuple[int, int, int]]:
+    """Return one ``(r, g, b)`` per knob based on each knob's LED config."""
+    return [
+        get_led_color(get_knob_led_cfg(config, i), knob_norms[i])
+        for i in range(NUM_KNOBS)
+    ]
+
+
 # ── PulseAudio / PipeWire controller ──────────────────────────────────────────
 
 class PulseController:
@@ -113,10 +140,7 @@ class PulseController:
     def close(self) -> None:
         self._pulse.close()
 
-    # -- Sink (output) ---------------------------------------------------------
-
     def set_sink_volume(self, sink_name: str, volume: float) -> None:
-        """Set output volume for *sink_name*.  *volume* is clamped to 0.0–1.5."""
         volume = max(0.0, min(VOLUME_MAX, volume))
         try:
             if sink_name == "default":
@@ -129,23 +153,18 @@ class PulseController:
             log.warning("set_sink_volume(%r) failed: %s", sink_name, exc)
 
     def toggle_mute_sink(self, sink_name: str) -> None:
-        """Toggle the mute state of *sink_name*."""
         try:
             if sink_name == "default":
                 info = self._pulse.server_info()
                 sink = self._pulse.get_sink_by_name(info.default_sink_name)
             else:
                 sink = self._pulse.get_sink_by_name(sink_name)
-            new_mute = not sink.mute
-            self._pulse.mute(sink, new_mute)
-            log.info("Sink %r mute → %s", sink_name, new_mute)
+            self._pulse.mute(sink, not sink.mute)
+            log.info("Sink %r mute toggled", sink_name)
         except Exception as exc:
             log.warning("toggle_mute_sink(%r) failed: %s", sink_name, exc)
 
-    # -- Source (input / mic) --------------------------------------------------
-
     def set_source_volume(self, source_name: str, volume: float) -> None:
-        """Set mic/input volume for *source_name*.  *volume* is clamped to 0.0–1.0."""
         volume = max(0.0, min(1.0, volume))
         try:
             if source_name == "default":
@@ -158,27 +177,18 @@ class PulseController:
             log.warning("set_source_volume(%r) failed: %s", source_name, exc)
 
     def toggle_mute_source(self, source_name: str) -> None:
-        """Toggle the mute state of *source_name*."""
         try:
             if source_name == "default":
                 info = self._pulse.server_info()
                 source = self._pulse.get_source_by_name(info.default_source_name)
             else:
                 source = self._pulse.get_source_by_name(source_name)
-            new_mute = not source.mute
-            self._pulse.mute(source, new_mute)
-            log.info("Source %r mute → %s", source_name, new_mute)
+            self._pulse.mute(source, not source.mute)
+            log.info("Source %r mute toggled", source_name)
         except Exception as exc:
             log.warning("toggle_mute_source(%r) failed: %s", source_name, exc)
 
-    # -- Sink inputs (per-app) -------------------------------------------------
-
     def set_app_volume(self, app_name: str, volume: float) -> None:
-        """Set volume for the sink input whose ``application.name`` or
-        ``application.process.binary`` contains *app_name* (case-insensitive).
-
-        *volume* is clamped to 0.0–1.5.
-        """
         volume = max(0.0, min(VOLUME_MAX, volume))
         needle = app_name.lower()
         try:
@@ -196,15 +206,21 @@ class PulseController:
 # ── Event handlers ─────────────────────────────────────────────────────────────
 
 def handle_knob(
-    knob_id: int, value: int, config: dict, pulse: PulseController
+    knob_id: int,
+    value: int,
+    config: dict,
+    pulse: PulseController,
+    ser: serial.Serial,
+    knob_norms: list[float],
 ) -> None:
-    """Dispatch a knob event according to the loaded configuration."""
+    """Dispatch a knob event, update PulseAudio, then refresh the LEDs."""
     knob_cfg = config.get("knobs", {}).get(str(knob_id))
     if not knob_cfg:
         return
 
     action = knob_cfg.get("action", "sink_volume")
     target = knob_cfg.get("target", "default")
+    norm   = knob_to_norm(value)
 
     if action == "sink_volume":
         vol = knob_to_volume(value)
@@ -212,9 +228,8 @@ def handle_knob(
         log.info("Knob %d → sink %r = %.2f", knob_id, target, vol)
 
     elif action == "source_volume":
-        vol = knob_to_norm(value)
-        pulse.set_source_volume(target, vol)
-        log.info("Knob %d → source %r = %.2f", knob_id, target, vol)
+        pulse.set_source_volume(target, norm)
+        log.info("Knob %d → source %r = %.2f", knob_id, target, norm)
 
     elif action == "app_volume":
         vol = knob_to_volume(value)
@@ -223,20 +238,18 @@ def handle_knob(
 
     elif action == "group_volume":
         vol = knob_to_volume(value)
-        targets: list[str] = knob_cfg.get("targets", [])
-        for t in targets:
+        for t in knob_cfg.get("targets", []):
             pulse.set_app_volume(t, vol)
-        log.info("Knob %d → group %s = %.2f", knob_id, targets, vol)
+        log.info("Knob %d → group %s = %.2f", knob_id, knob_cfg.get("targets"), vol)
+
+    knob_norms[knob_id] = norm
+    send_leds(ser, all_led_colors(config, knob_norms))
 
 
 def handle_button(
     button_id: int, action: str, config: dict, pulse: PulseController
 ) -> None:
-    """Dispatch a button event according to the loaded configuration.
-
-    Only ``press`` events are acted upon; ``release`` events are silently
-    ignored.
-    """
+    """Dispatch a button press event."""
     if action != "press":
         return
 
@@ -249,10 +262,8 @@ def handle_button(
 
     if btn_action == "mute_sink":
         pulse.toggle_mute_sink(target)
-
     elif btn_action == "mute_source":
         pulse.toggle_mute_source(target)
-
     elif btn_action == "command":
         try:
             subprocess.Popen(target, shell=True)  # noqa: S602
@@ -265,13 +276,14 @@ def handle_button(
 
 def main() -> None:
     config = load_config()
-    port: str  = config.get("port", "/dev/ttyACM0")
-    baud: int  = config.get("baud", 115200)
+    port: str = config.get("port", "/dev/ttyACM0")
+    baud: int = config.get("baud", 115200)
 
     log.info("Turn Up daemon starting — %s @ %d baud", port, baud)
 
-    pulse = PulseController()
-    buf   = bytearray()
+    pulse      = PulseController()
+    knob_norms = [0.0] * NUM_KNOBS
+    buf        = bytearray()
 
     def _shutdown(sig: int, _frame: object) -> None:
         log.info("Received signal %d — shutting down", sig)
@@ -286,6 +298,8 @@ def main() -> None:
             with serial.Serial(port, baud, timeout=0.1) as ser:
                 log.info("Connected to %s", port)
                 buf.clear()
+                send_leds(ser, all_led_colors(config, knob_norms))
+
                 while True:
                     data = ser.read(64)
                     if not data:
@@ -294,9 +308,14 @@ def main() -> None:
                     messages, buf = parse_messages(buf)
                     for msg in messages:
                         if msg["type"] == "knob":
-                            handle_knob(msg["id"], msg["value"], config, pulse)
+                            handle_knob(
+                                msg["id"], msg["value"],
+                                config, pulse, ser, knob_norms,
+                            )
                         elif msg["type"] == "button":
-                            handle_button(msg["id"], msg["action"], config, pulse)
+                            handle_button(
+                                msg["id"], msg["action"], config, pulse
+                            )
 
         except serial.SerialException as exc:
             log.warning("Serial error: %s — retrying in 3 s", exc)
