@@ -64,7 +64,7 @@ jobs:
       - name: Set up SSH for AUR
         run: |
           mkdir -p ~/.ssh
-          printf '%s' "${{ secrets.AUR_SSH_KEY }}" > ~/.ssh/aur
+          printf '%s' "${{ secrets.AUR_SSH_KEY }}" | base64 -d > ~/.ssh/aur
           chmod 600 ~/.ssh/aur
           ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
           ssh -i ~/.ssh/aur -o StrictHostKeyChecking=no -T aur@aur.archlinux.org || true
