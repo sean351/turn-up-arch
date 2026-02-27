@@ -1,6 +1,6 @@
 pkgbase = turn-up-arch
 	pkgdesc = USB serial knob/button mixer daemon for PipeWire/PulseAudio on Linux
-	pkgver = 0.3.1
+	pkgver = 0.3.2
 	pkgrel = 1
 	url = https://github.com/sean351/turn-up-arch
 	arch = any
@@ -15,7 +15,7 @@ pkgbase = turn-up-arch
 	depends = pipewire-pulse
 	optdepends = playerctl: media key support via button commands
 	optdepends = pulseaudio: alternative to pipewire-pulse
-	source = turn-up-arch-0.3.1.tar.gz::https://github.com/sean351/turn-up-arch/archive/refs/tags/v0.3.1.tar.gz
+	source = turn-up-arch-0.3.2.tar.gz::https://github.com/sean351/turn-up-arch/archive/refs/tags/v0.3.2.tar.gz
 	sha256sums = SKIP
 
 pkgname = turn-up-arch

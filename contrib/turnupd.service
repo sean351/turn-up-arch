@@ -6,7 +6,7 @@ Wants=pipewire-pulse.service
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/turnupd
+ExecStart=/usr/bin/turnupd
 Restart=on-failure
 RestartSec=5
 # Give the audio server a moment to start before connecting
