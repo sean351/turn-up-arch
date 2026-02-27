@@ -70,7 +70,9 @@ jobs:
           chmod 600 ~/.ssh/aur
           echo "Key fingerprint: $(ssh-keygen -l -f ~/.ssh/aur)"
           ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
-          ssh -i ~/.ssh/aur -o StrictHostKeyChecking=no -T aur@aur.archlinux.org
+          # exit 1 = auth OK but interactive shell disabled (expected for AUR)
+          # exit 255 = connection/auth failure
+          ssh -i ~/.ssh/aur -o StrictHostKeyChecking=no -T aur@aur.archlinux.org || [[ $? -eq 1 ]]
 
       - name: Clone AUR repo
         env:
