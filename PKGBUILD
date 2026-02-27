@@ -1,4 +1,5 @@
 # Maintainer: Sean Doran <sdoran35@gmail.com>
+# AUR updates are automated via GitHub Actions on version tag push
 pkgname=turn-up-arch
 pkgver=0.2.0
 pkgrel=1
