@@ -68,8 +68,9 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s' "$AUR_SSH_KEY" | base64 -d > ~/.ssh/aur
           chmod 600 ~/.ssh/aur
+          echo "Key fingerprint: $(ssh-keygen -l -f ~/.ssh/aur)"
           ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
-          ssh -i ~/.ssh/aur -o StrictHostKeyChecking=no -T aur@aur.archlinux.org || true
+          ssh -i ~/.ssh/aur -o StrictHostKeyChecking=no -T aur@aur.archlinux.org
 
       - name: Clone AUR repo
         env:
