@@ -1,0 +1,21 @@
+[Unit]
+Description=Turn Up mixer daemon
+Documentation=https://github.com/sean351/turn-up-arch
+After=pipewire-pulse.service pulseaudio.service
+Wants=pipewire-pulse.service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/turnupd
+Restart=on-failure
+RestartSec=5
+# Give the audio server a moment to start before connecting
+ExecStartPre=/bin/sleep 2
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=turnupd
+
+[Install]
+WantedBy=default.target

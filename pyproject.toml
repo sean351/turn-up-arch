@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "turnup"
+version = "0.1.0"
+description = "USB serial knob/button mixer daemon for PipeWire/PulseAudio on Linux"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "pyserial>=3.5",
+    "pulsectl>=22.0",
+]
+
+[project.scripts]
+turnupd = "turnup.turnupd:main"
+
+[project.urls]
+Homepage   = "https://github.com/sean351/turn-up-arch"
+Repository = "https://github.com/sean351/turn-up-arch"
+Issues     = "https://github.com/sean351/turn-up-arch/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/turnup"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/",
+    "contrib/",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+]

@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# mypy / pyright
+.mypy_cache/
+.pyright/
+
+# Build artefacts (makepkg — these are created next to PKGBUILD)
+pkg/
+*.tar.zst
+*.tar.gz
+*.tar.xz
+
+# User config (not tracked — see contrib/config.example.json)
+config.json
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

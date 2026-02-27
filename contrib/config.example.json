@@ -1,0 +1,22 @@
+{
+  "port": "/dev/ttyACM0",
+  "baud": 115200,
+
+  "knobs": {
+    "0": { "action": "sink_volume",   "target": "default" },
+    "1": { "action": "group_volume",  "targets": ["vlc", "spotify", "Cider"] },
+    "2": { "action": "app_volume", "target": "Brave" },
+    "3": { "action": "group_volume",  "targets": ["electron", "discord"] },
+    "4": { "action": "sink_volume",   "target": "default" }
+  },
+
+  "buttons": {
+    "0": { "action": "mute_sink",   "target": "default" },
+    "1": { "action": "command", "target": "playerctl previous" },
+    "2": { "action": "command",     "target": "playerctl play-pause" },
+    "3": { "action": "command",     "target": "playerctl next" },
+    "4": { "action": "mute_source",     "target": "default" }
+  }
+}
+
+
