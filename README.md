@@ -37,12 +37,6 @@ cd turn-up-arch
 pip install .
 ```
 
-### From source (pip)
-
-```sh
-pip install .
-```
-
 ## Configuration
 
 On first run `turnupd` writes a default config to
