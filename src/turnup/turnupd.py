@@ -81,6 +81,22 @@ def parse_messages(buf: bytearray) -> tuple[list[dict], bytearray]:
             i += 6
 
         else:
+            # buf[i] == 0xFE but no complete frame matched.  If the following
+            # byte identifies a known frame type, this is a partial (split)
+            # frame at the end of the read buffer — break and return it in the
+            # remainder so the next serial read can complete it.  Only skip
+            # past this 0xFE when we can rule out a valid frame start (unknown
+            # type byte with enough bytes already present to decide).
+            if remaining < 2:
+                break  # Lone 0xFE — could be the start of any frame type.
+            type_byte = buf[i + 1]
+            if type_byte == 0x02 and remaining < 3:
+                break  # Partial heartbeat: waiting for terminator 0xFF.
+            if type_byte in (0x06, 0x07) and remaining < 4:
+                break  # Partial button: waiting for id + 0xFF.
+            if type_byte == 0x03 and remaining < 6:
+                break  # Partial knob: waiting for id, hi, lo, 0xFF.
+            # Unknown / corrupted frame — skip this 0xFE byte.
             i += 1
 
     return messages, bytearray(buf[i:])
@@ -378,7 +394,9 @@ def main() -> None:
             with serial.Serial(port, baud, timeout=0.1) as ser:
                 log.info("Connected to %s", port)
                 buf.clear()
-                send_leds(ser, all_led_colors(config, knob_norms))
+                initial_colors = all_led_colors(config, knob_norms)
+                send_leds(ser, initial_colors)
+                last_led_colors[:] = initial_colors
 
                 while True:
                     data = ser.read(64)
