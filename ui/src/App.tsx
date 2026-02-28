@@ -14,12 +14,14 @@ const BTN_INDICES  = ['0', '1', '2', '3', '4'] as const;
 let toastSeq = 0;
 
 export default function App() {
-  const [config,  setConfig]  = useState<Config | null>(null);
-  const [saved,   setSaved]   = useState<Config | null>(null);
-  const [presets, setPresets] = useState<string[]>([]);
-  const [toasts,  setToasts]  = useState<ToastItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving,  setSaving]  = useState(false);
+  const [config,      setConfig]      = useState<Config | null>(null);
+  const [saved,       setSaved]       = useState<Config | null>(null);
+  const [presets,     setPresets]     = useState<string[]>([]);
+  const [toasts,      setToasts]      = useState<ToastItem[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [saving,      setSaving]      = useState(false);
+  const [runningApps, setRunningApps] = useState<string[]>([]);
+  const [appsLoading, setAppsLoading] = useState(false);
 
   const addToast = useCallback((message: string, type: ToastItem['type'] = 'success') => {
     const id = ++toastSeq;
@@ -39,6 +41,15 @@ export default function App() {
     }
   }, []);
 
+  const loadApps = useCallback(async () => {
+    setAppsLoading(true);
+    try {
+      setRunningApps(await api.fetchRunningApps());
+    } finally {
+      setAppsLoading(false);
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     void (async () => {
@@ -52,8 +63,9 @@ export default function App() {
         setLoading(false);
       }
       await loadPresets();
+      await loadApps();
     })();
-  }, [addToast, loadPresets]);
+  }, [addToast, loadPresets, loadApps]);
 
   const isDirty = config !== null && JSON.stringify(config) !== JSON.stringify(saved);
 
@@ -128,13 +140,24 @@ export default function App() {
         />
 
         <section className="card" id="knobs">
-          <h2>Knobs</h2>
+          <h2>
+            Knobs
+            <button
+              className="btn-secondary btn-refresh-apps"
+              onClick={() => void loadApps()}
+              disabled={appsLoading}
+              title="Refresh list of running apps"
+            >
+              {appsLoading ? '…' : '↻'} Running apps
+            </button>
+          </h2>
           <div className="cards-grid">
             {KNOB_INDICES.map((i) => (
               <KnobCard
                 key={i}
                 index={Number(i)}
                 knob={config.knobs[i] ?? { action: 'sink_volume', target: 'default' }}
+                runningApps={runningApps}
                 onChange={(knob) =>
                   patchConfig('knobs', { ...config.knobs, [i]: knob })
                 }
