@@ -15,6 +15,12 @@ dependencies = [
     "tomli>=1.1; python_version < '3.11'",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [project.scripts]
 turnupd = "turnup.turnupd:main"
 
