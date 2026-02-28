@@ -12,7 +12,7 @@ depends=(
     'python-pyserial'
     'python-pulsectl'
     'python-fastapi'
-    'python-uvicorn'
+    'uvicorn'
     'pipewire-pulse'
     'playerctl'
 )
