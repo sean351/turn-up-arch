@@ -397,7 +397,9 @@ def main() -> None:
                                     msg["id"], msg["action"], config, pulse
                                 )
                             elif msg["type"] == "heartbeat":
-                                send_leds(ser, all_led_colors(config, knob_norms))
+                                new_colors = all_led_colors(config, knob_norms)
+                                send_leds(ser, new_colors)
+                                last_led_colors[:] = new_colors
 
                     # Check for config changes every 2 s (serial read timeout = 0.1 s).
                     now = time.monotonic()

@@ -11,6 +11,8 @@ depends=(
     'python'
     'python-pyserial'
     'python-pulsectl'
+    'python-fastapi'
+    'python-uvicorn'
     'pipewire-pulse'
     'playerctl'
 )
@@ -37,9 +39,11 @@ package() {
 
     python -m installer --destdir="$pkgdir" dist/*.whl
 
-    # Systemd user service
+    # Systemd user services
     install -Dm644 contrib/turnupd.service \
         "$pkgdir/usr/lib/systemd/user/turnupd.service"
+    install -Dm644 contrib/turnup-ui.service \
+        "$pkgdir/usr/lib/systemd/user/turnup-ui.service"
 
     # License
     install -Dm644 LICENSE \
