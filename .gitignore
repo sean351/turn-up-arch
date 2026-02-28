@@ -37,7 +37,8 @@ pkg/
 # User config (not tracked — see contrib/config.example.json)
 config.json
 
-# IDE / editor
+# Node / Vite
+ui/node_modules/
 .vscode/
 .idea/
 *.swp

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#0d1117"/>
+  <!-- Knob body -->
+  <circle cx="256" cy="210" r="110" fill="#161b22" stroke="#58a6ff" stroke-width="14"/>
+  <!-- Knob indicator line -->
+  <line x1="256" y1="210" x2="256" y2="122" stroke="#58a6ff" stroke-width="12" stroke-linecap="round"/>
+  <!-- Center dot -->
+  <circle cx="256" cy="210" r="18" fill="#58a6ff"/>
+  <!-- 5 dots = 5 knobs/buttons -->
+  <circle cx="116" cy="390" r="14" fill="#3fb950"/>
+  <circle cx="176" cy="390" r="14" fill="#3fb950"/>
+  <circle cx="256" cy="390" r="14" fill="#58a6ff"/>
+  <circle cx="336" cy="390" r="14" fill="#3fb950"/>
+  <circle cx="396" cy="390" r="14" fill="#3fb950"/>
+</svg>

@@ -17,12 +17,14 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+ui  = ["fastapi>=0.110", "uvicorn>=0.29"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
 [project.scripts]
-turnupd = "turnup.turnupd:main"
+turnupd    = "turnup.turnupd:main"
+turnup-ui  = "turnup.ui.server:main"
 
 [project.urls]
 Homepage   = "https://github.com/sean351/turn-up-arch"

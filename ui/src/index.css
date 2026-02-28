@@ -1,0 +1,356 @@
+/* ── Design tokens ─────────────────────────────────────────────────────────── */
+:root {
+  --bg:         #0d1117;
+  --surface:    #161b22;
+  --surface-2:  #21262d;
+  --border:     #30363d;
+  --text:       #e6edf3;
+  --text-muted: #8b949e;
+  --accent:     #58a6ff;
+  --accent-dim: #1f3a5f;
+  --success:    #3fb950;
+  --danger:     #f85149;
+  --warning:    #d29922;
+  --radius:     8px;
+  --gap:        16px;
+}
+
+/* ── Reset ─────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100dvh;
+}
+
+/* ── Typography ────────────────────────────────────────────────────────────── */
+h2 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+/* ── Form controls ─────────────────────────────────────────────────────────── */
+input[type="text"],
+input[type="number"],
+select,
+textarea {
+  width: 100%;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
+}
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent);
+}
+select { cursor: pointer; }
+textarea { resize: vertical; min-height: 60px; }
+
+input[type="color"] {
+  width: 36px;
+  height: 36px;
+  padding: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────────── */
+button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background .15s, border-color .15s, opacity .15s;
+  white-space: nowrap;
+}
+button:active { opacity: .75; }
+button:disabled { opacity: .4; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+}
+.btn-primary:hover:not(:disabled) { background: #79b8ff; border-color: #79b8ff; }
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+.btn-secondary:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+
+.btn-danger {
+  background: transparent;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.btn-danger:hover:not(:disabled) { background: var(--danger); color: #fff; }
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+/* ── Layout ────────────────────────────────────────────────────────────────── */
+#app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  padding: 12px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+#app-header h1 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  flex: 1;
+}
+
+#dirty-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--warning);
+  color: #000;
+  font-weight: 600;
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+#loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* ── Cards / sections ──────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+/* ── Connection row ────────────────────────────────────────────────────────── */
+#connection .fields {
+  display: flex;
+  gap: var(--gap);
+  flex-wrap: wrap;
+}
+#connection .field { flex: 1; min-width: 160px; }
+
+/* ── Global LEDs ───────────────────────────────────────────────────────────── */
+#global-leds .fields {
+  display: flex;
+  gap: var(--gap);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+#global-leds .field { flex: 1; min-width: 120px; }
+
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.color-hex {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.led-preview {
+  margin-top: 12px;
+  height: 8px;
+  border-radius: 4px;
+}
+
+/* ── Knobs / Buttons grids ─────────────────────────────────────────────────── */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--gap);
+}
+
+.knob-card,
+.button-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.knob-card .card-title,
+.button-card .card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ── LED override toggle ───────────────────────────────────────────────────── */
+.led-override-toggle {
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+}
+.led-override-toggle:hover { color: var(--accent); }
+
+.led-override-panel {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.led-override-panel.open { display: flex; }
+
+.led-override-panel .color-row { flex-wrap: wrap; gap: 6px; }
+
+/* ── Presets ───────────────────────────────────────────────────────────────── */
+#presets .save-row {
+  display: flex;
+  gap: var(--gap);
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+#presets .save-row .field { flex: 1; min-width: 180px; }
+
+.preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preset-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.preset-item .preset-name {
+  flex: 1;
+  font-weight: 500;
+  font-size: 13px;
+}
+.preset-item .preset-actions { display: flex; gap: 6px; }
+
+/* ── Toast notifications ───────────────────────────────────────────────────── */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  animation: toast-in .2s ease, toast-out .3s ease 2.7s forwards;
+  pointer-events: auto;
+}
+.toast.success { background: var(--success); color: #000; }
+.toast.error   { background: var(--danger); }
+.toast.info    { background: var(--accent); color: #000; }
+
+@keyframes toast-in  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes toast-out { from { opacity: 1; } to { opacity: 0; } }
+
+/* ── Empty state ───────────────────────────────────────────────────────────── */
+.empty {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────────── */
+@media (max-width: 540px) {
+  main { padding: 16px; }
+  #app-header { padding: 10px 16px; }
+}
