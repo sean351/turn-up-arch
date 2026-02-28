@@ -124,11 +124,54 @@ class TestParseMessages:
         assert msgs == [{"type": "heartbeat"}]
 
     def test_incomplete_frame_stays_in_remainder(self):
-        # The parser advances byte-by-byte when a frame is unrecognised, so an
-        # incomplete knob frame (missing terminator 0xFF) is consumed as garbage.
+        # A partial knob frame at the end of the buffer must be returned in
+        # the remainder so the next serial read can complete it.  Previously
+        # the parser consumed the leading 0xFE as garbage, silently dropping
+        # the message and causing LED colors to miss updates (flicker).
         buf = bytearray([0xFE, 0x03, 0x01, 0x03])
         msgs, remainder = parse_messages(buf)
         assert msgs == []
+        assert remainder == bytearray([0xFE, 0x03, 0x01, 0x03])
+
+    def test_partial_frame_completed_on_next_read(self):
+        # Simulate a knob message split across two ser.read() calls.
+        # First read: 4 of 6 bytes.
+        partial = bytearray([0xFE, 0x03, 0x01, 0x03])
+        msgs1, remainder1 = parse_messages(partial)
+        assert msgs1 == []
+        assert remainder1 == partial  # preserved, not discarded
+        # Second read supplies the remaining 2 bytes.
+        msgs2, remainder2 = parse_messages(remainder1 + bytearray([0xF4, 0xFF]))
+        assert msgs2 == [{"type": "knob", "id": 1, "value": 1012}]
+        assert remainder2 == bytearray()
+
+    def test_partial_heartbeat_stays_in_remainder(self):
+        # Lone 0xFE 0x02 (missing 0xFF terminator) must be preserved.
+        buf = bytearray([0xFE, 0x02])
+        msgs, remainder = parse_messages(buf)
+        assert msgs == []
+        assert remainder == bytearray([0xFE, 0x02])
+
+    def test_partial_button_stays_in_remainder(self):
+        # FE 06 id — missing 0xFF terminator.
+        buf = bytearray([0xFE, 0x06, 0x02])
+        msgs, remainder = parse_messages(buf)
+        assert msgs == []
+        assert remainder == bytearray([0xFE, 0x06, 0x02])
+
+    def test_lone_start_byte_stays_in_remainder(self):
+        # A single 0xFE with no following bytes must be preserved.
+        buf = bytearray([0xFE])
+        msgs, remainder = parse_messages(buf)
+        assert msgs == []
+        assert remainder == bytearray([0xFE])
+
+    def test_unknown_frame_type_skipped(self):
+        # 0xFE followed by an unknown type byte (and enough bytes to decide)
+        # should be skipped, not stall the parser.
+        buf = bytearray([0xFE, 0x99, 0x00, 0x00, 0x00, 0x00, 0xFE, 0x02, 0xFF])
+        msgs, remainder = parse_messages(buf)
+        assert msgs == [{"type": "heartbeat"}]
         assert remainder == bytearray()
 
     def test_empty_buffer(self):
