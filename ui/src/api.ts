@@ -56,3 +56,13 @@ export async function deletePreset(name: string): Promise<void> {
   });
   await checkResponse(r);
 }
+
+export async function fetchRunningApps(): Promise<string[]> {
+  try {
+    const r = await fetch('/api/apps');
+    if (!r.ok) return [];
+    return r.json();
+  } catch {
+    return [];
+  }
+}

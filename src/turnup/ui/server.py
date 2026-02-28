@@ -114,6 +114,30 @@ async def save_config(request: Request) -> dict[str, bool]:
     return {"ok": True}
 
 
+# ── Running apps API ──────────────────────────────────────────────────────────
+
+@app.get("/api/apps")
+def list_running_apps() -> list[str]:
+    """Return unique app names from currently active PulseAudio/PipeWire sink inputs.
+
+    Returns both ``application.name`` and ``application.process.binary`` values
+    (deduplicated) because the daemon's matching logic accepts either.  Falls
+    back to an empty list if pulsectl is unavailable or no server is reachable.
+    """
+    try:
+        import pulsectl  # optional — only present when [ui] extra is installed
+        with pulsectl.Pulse("turnup-ui-apps") as pulse:
+            seen: set[str] = set()
+            for si in pulse.sink_input_list():
+                for field in ("application.name", "application.process.binary"):
+                    val = (si.proplist.get(field) or "").strip()
+                    if val:
+                        seen.add(val)
+            return sorted(seen, key=str.lower)
+    except Exception:
+        return []
+
+
 # ── Presets API ────────────────────────────────────────────────────────────────
 
 def _preset_path(name: str) -> Path:

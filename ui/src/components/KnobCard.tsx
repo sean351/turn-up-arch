@@ -16,13 +16,15 @@ const DEFAULT_LED: LedConfig = {
 };
 
 interface Props {
-  index:    number;
-  knob:     KnobConfig;
-  onChange: (knob: KnobConfig) => void;
+  index:        number;
+  knob:         KnobConfig;
+  runningApps?: string[];
+  onChange:     (knob: KnobConfig) => void;
 }
 
-export function KnobCard({ index, knob, onChange }: Props) {
-  const [ledOpen, setLedOpen] = useState(!!knob.led);
+export function KnobCard({ index, knob, runningApps = [], onChange }: Props) {
+  const [ledOpen,      setLedOpen]      = useState(!!knob.led);
+  const [pickedApp,    setPickedApp]    = useState('');
 
   const update = (patch: Partial<KnobConfig>) => onChange({ ...knob, ...patch });
 
@@ -43,6 +45,19 @@ export function KnobCard({ index, knob, onChange }: Props) {
       const { led: _dropped, ...rest } = knob;
       onChange(rest as KnobConfig);
     }
+  };
+
+  const datalistId = `knob-${index}-apps`;
+
+  // Add the selected running app to the group_volume targets list
+  const addPickedApp = () => {
+    const app = pickedApp.trim();
+    if (!app) return;
+    const current = knob.targets ?? [];
+    if (!current.includes(app)) {
+      update({ targets: [...current, app] });
+    }
+    setPickedApp('');
   };
 
   return (
@@ -87,6 +102,28 @@ export function KnobCard({ index, knob, onChange }: Props) {
               })
             }
           />
+          {runningApps.length > 0 && (
+            <div className="app-picker">
+              <select
+                value={pickedApp}
+                onChange={(e) => setPickedApp(e.target.value)}
+                aria-label="Pick a running app"
+              >
+                <option value="">— running apps —</option>
+                {runningApps.map((app) => (
+                  <option key={app} value={app}>{app}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={addPickedApp}
+                disabled={!pickedApp}
+              >
+                Add
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div>
@@ -94,10 +131,18 @@ export function KnobCard({ index, knob, onChange }: Props) {
           <input
             type="text"
             id={`knob-${index}-target`}
+            list={runningApps.length > 0 ? datalistId : undefined}
             value={knob.target ?? 'default'}
             placeholder="default"
             onChange={(e) => update({ target: e.target.value })}
           />
+          {runningApps.length > 0 && (
+            <datalist id={datalistId}>
+              {runningApps.map((app) => (
+                <option key={app} value={app} />
+              ))}
+            </datalist>
+          )}
         </div>
       )}
 
