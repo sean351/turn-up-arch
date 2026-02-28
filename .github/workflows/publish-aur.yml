@@ -32,35 +32,15 @@ jobs:
           sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
           sed -i "s/^sha256sums=.*/sha256sums=('${SHA}')/" PKGBUILD
 
-      - name: Generate .SRCINFO
+      - name: Update .SRCINFO version and checksum
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           SHA="${{ steps.sha256.outputs.sha256 }}"
           PKGNAME="${{ github.event.repository.name }}"
-          cat > .SRCINFO <<EOF
-          pkgbase = ${PKGNAME}
-          	pkgdesc = USB serial knob/button mixer daemon for PipeWire/PulseAudio on Linux
-          	pkgver = ${VERSION}
-          	pkgrel = 1
-          	url = https://github.com/${{ github.repository }}
-          	arch = any
-          	license = MIT
-          	makedepends = python-build
-          	makedepends = python-installer
-          	makedepends = python-wheel
-          	makedepends = python-hatchling
-          	depends = python
-          	depends = python-pyserial
-          	depends = python-pulsectl
-          	depends = pipewire-pulse
-          	depends = playerctl
-          	optdepends = pulseaudio: alternative to pipewire-pulse
-          	install = turnupd.install
-          	source = ${PKGNAME}-${VERSION}.tar.gz::https://github.com/${{ github.repository }}/archive/refs/tags/v${VERSION}.tar.gz
-          	sha256sums = ${SHA}
-
-          pkgname = ${PKGNAME}
-          EOF
+          sed -i "s/pkgver = .*/pkgver = ${VERSION}/" .SRCINFO
+          sed -i "s/pkgrel = .*/pkgrel = 1/" .SRCINFO
+          sed -i "s|source = .*|source = ${PKGNAME}-${VERSION}.tar.gz::https://github.com/${{ github.repository }}/archive/refs/tags/v${VERSION}.tar.gz|" .SRCINFO
+          sed -i "s/sha256sums = .*/sha256sums = ${SHA}/" .SRCINFO
 
       - name: Set up SSH for AUR
         env:
