@@ -251,8 +251,20 @@ def handle_knob(
     pulse: PulseController,
     ser: serial.Serial,
     knob_norms: list[float],
+    last_led_colors: list[tuple[int, int, int]],
+    last_knob_event: list[float],
 ) -> None:
-    """Dispatch a knob event, update PulseAudio, then refresh the LEDs."""
+    """Dispatch a knob event, update PulseAudio, then refresh the LEDs.
+
+    *last_led_colors* is a length-5 list used to suppress duplicate LED
+    packets — if the computed colours are identical to the last send we skip
+    the write, eliminating the LED storm that causes visible flicker during a
+    fast knob turn.
+
+    *last_knob_event* is a single-element list (mutable float box) whose
+    value is updated to ``time.monotonic()`` on every call so the main loop
+    can gate ``reapply_app_volumes`` on a quiet period after knob activity.
+    """
     knob_cfg = config.get("knobs", {}).get(str(knob_id))
     if not knob_cfg:
         return
@@ -282,7 +294,16 @@ def handle_knob(
         log.info("Knob %d → group %s = %.2f", knob_id, knob_cfg.get("targets"), vol)
 
     knob_norms[knob_id] = norm
-    send_leds(ser, all_led_colors(config, knob_norms))
+    last_knob_event[0] = time.monotonic()
+
+    # Only send an LED packet when the colour actually changes.  A single
+    # physical knob turn generates 20-50 ADC samples in rapid succession;
+    # without this guard every sample triggers a write and the firmware can't
+    # keep up, causing visible flicker.
+    new_colors = all_led_colors(config, knob_norms)
+    if new_colors != last_led_colors:
+        send_leds(ser, new_colors)
+        last_led_colors[:] = new_colors
 
 
 def handle_button(
@@ -326,6 +347,14 @@ def main() -> None:
     knob_norms = init_knob_norms(config, pulse)
     buf        = bytearray()
 
+    # Mutable state shared between the main loop and handle_knob:
+    #   last_led_colors — suppress duplicate LED writes during fast knob turns
+    #   last_knob_event — timestamp of most recent knob message; used to gate
+    #                     reapply_app_volumes so we don't stall the loop
+    #                     mid-turn (200 ms quiet period required)
+    last_led_colors: list[tuple[int, int, int]] = [(0, 0, 0)] * NUM_KNOBS
+    last_knob_event: list[float] = [0.0]
+
     # Track config file mtime so we can restart when it changes.
     try:
         config_mtime: float | None = os.stat(DEFAULT_CONFIG_PATH).st_mtime
@@ -361,6 +390,7 @@ def main() -> None:
                                 handle_knob(
                                     msg["id"], msg["value"],
                                     config, pulse, ser, knob_norms,
+                                    last_led_colors, last_knob_event,
                                 )
                             elif msg["type"] == "button":
                                 handle_button(
@@ -386,7 +416,12 @@ def main() -> None:
                     # streams (e.g. Spotify starting a new song resets to 100 %).
                     # Also trigger immediately on any PA sink-input event so
                     # PA-only apps (e.g. Brave) are corrected within ~0.1 s.
-                    if pulse.drain_events() or now - last_reapply >= 1.0:
+                    # Guard on a 200 ms knob-quiet period: calling playerctl /
+                    # pulsectl while the user is actively turning a knob can
+                    # stall the main loop long enough for serial data to back
+                    # up, which in turn causes heartbeat misses and LED flicker.
+                    knob_quiet = now - last_knob_event[0] >= 0.2
+                    if (pulse.drain_events() or now - last_reapply >= 1.0) and knob_quiet:
                         last_reapply = now
                         reapply_app_volumes(config, pulse, knob_norms)
 
