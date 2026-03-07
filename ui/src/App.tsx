@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Config, ToastItem } from './types';
+import type { Config, AudioDevice, ToastItem } from './types';
 import * as api from './api';
 import { ToastContainer } from './components/Toast';
 import { Connection } from './components/Connection';
@@ -21,6 +21,8 @@ export default function App() {
   const [loading,     setLoading]     = useState(true);
   const [saving,      setSaving]      = useState(false);
   const [runningApps, setRunningApps] = useState<string[]>([]);
+  const [sinks,       setSinks]       = useState<AudioDevice[]>([]);
+  const [sources,     setSources]     = useState<AudioDevice[]>([]);
   const [appsLoading, setAppsLoading] = useState(false);
 
   const addToast = useCallback((message: string, type: ToastItem['type'] = 'success') => {
@@ -44,7 +46,14 @@ export default function App() {
   const loadApps = useCallback(async () => {
     setAppsLoading(true);
     try {
-      setRunningApps(await api.fetchRunningApps());
+      const [apps, sinkList, sourceList] = await Promise.all([
+        api.fetchRunningApps(),
+        api.fetchSinks(),
+        api.fetchSources(),
+      ]);
+      setRunningApps(apps);
+      setSinks(sinkList);
+      setSources(sourceList);
     } finally {
       setAppsLoading(false);
     }
@@ -158,6 +167,8 @@ export default function App() {
                 index={Number(i)}
                 knob={config.knobs[i] ?? { action: 'sink_volume', target: 'default' }}
                 runningApps={runningApps}
+                sinks={sinks}
+                sources={sources}
                 onChange={(knob) =>
                   patchConfig('knobs', { ...config.knobs, [i]: knob })
                 }

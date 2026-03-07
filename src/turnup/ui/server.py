@@ -138,6 +138,60 @@ def list_running_apps() -> list[str]:
         return []
 
 
+# ── Audio devices API ─────────────────────────────────────────────────────────
+
+@app.get("/api/sinks")
+def list_sinks() -> list[dict]:
+    """Return active PulseAudio/PipeWire output devices (sinks).
+
+    Each entry has ``name`` (the PulseAudio sink name used as a config target)
+    and ``description`` (the human-readable label).  ``"default"`` is always
+    prepended as the first entry.  Falls back to ``[]`` on any error.
+    """
+    try:
+        import pulsectl
+        with pulsectl.Pulse("turnup-ui-sinks") as pulse:
+            sinks = pulse.sink_list()
+            default_name = pulse.server_info().default_sink_name
+            result = [{"name": "default", "description": "Default output device"}]
+            for s in sorted(sinks, key=lambda x: x.description.lower()):
+                result.append({
+                    "name": s.name,
+                    "description": s.description,
+                    "is_default": s.name == default_name,
+                })
+            return result
+    except Exception:
+        return []
+
+
+@app.get("/api/sources")
+def list_sources() -> list[dict]:
+    """Return active PulseAudio/PipeWire input devices (sources), excluding monitors.
+
+    Each entry has ``name`` and ``description``.  Monitor sources (loopbacks of
+    sink outputs) are excluded because users typically don't want to control
+    them with a physical knob.  Falls back to ``[]`` on any error.
+    """
+    try:
+        import pulsectl
+        with pulsectl.Pulse("turnup-ui-sources") as pulse:
+            sources = pulse.source_list()
+            default_name = pulse.server_info().default_source_name
+            result = [{"name": "default", "description": "Default input device"}]
+            for s in sorted(sources, key=lambda x: x.description.lower()):
+                if s.name.endswith(".monitor"):
+                    continue
+                result.append({
+                    "name": s.name,
+                    "description": s.description,
+                    "is_default": s.name == default_name,
+                })
+            return result
+    except Exception:
+        return []
+
+
 # ── Presets API ────────────────────────────────────────────────────────────────
 
 def _preset_path(name: str) -> Path:

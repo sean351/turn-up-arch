@@ -1,4 +1,4 @@
-import type { Config } from './types';
+import type { Config, AudioDevice } from './types';
 
 async function checkResponse(r: Response): Promise<void> {
   if (!r.ok) {
@@ -60,6 +60,26 @@ export async function deletePreset(name: string): Promise<void> {
 export async function fetchRunningApps(): Promise<string[]> {
   try {
     const r = await fetch('/api/apps');
+    if (!r.ok) return [];
+    return r.json();
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchSinks(): Promise<AudioDevice[]> {
+  try {
+    const r = await fetch('/api/sinks');
+    if (!r.ok) return [];
+    return r.json();
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchSources(): Promise<AudioDevice[]> {
+  try {
+    const r = await fetch('/api/sources');
     if (!r.ok) return [];
     return r.json();
   } catch {
