@@ -28,6 +28,12 @@ export interface Config {
   buttons: Record<string, ButtonConfig>;
 }
 
+export interface AudioDevice {
+  name:        string;
+  description: string;
+  is_default?: boolean;
+}
+
 export interface ToastItem {
   id:      number;
   message: string;

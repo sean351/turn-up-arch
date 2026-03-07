@@ -370,19 +370,9 @@ main {
   text-transform: none;
 }
 
-/* ── App picker (group_volume) ─────────────────────────────────────────────── */
-.app-picker {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.app-picker select {
-  flex: 1;
-  min-width: 0;
-}
-
-.app-picker .btn-secondary {
-  flex-shrink: 0;
-  padding: 7px 12px;
+/* ── label hint ────────────────────────────────────────────────────────────── */
+.label-hint {
+  font-size: 0.75rem;
+  color: var(--muted, #8b949e);
+  font-weight: normal;
 }

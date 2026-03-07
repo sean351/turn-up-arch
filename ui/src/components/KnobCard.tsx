@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { KnobConfig, KnobAction, LedConfig, LedMode } from '../types';
+import type { KnobConfig, KnobAction, LedConfig, LedMode, AudioDevice } from '../types';
 import { ColorPicker } from './ColorPicker';
 
 const ACTIONS: { value: KnobAction; label: string }[] = [
@@ -19,12 +19,13 @@ interface Props {
   index:        number;
   knob:         KnobConfig;
   runningApps?: string[];
+  sinks?:       AudioDevice[];
+  sources?:     AudioDevice[];
   onChange:     (knob: KnobConfig) => void;
 }
 
-export function KnobCard({ index, knob, runningApps = [], onChange }: Props) {
-  const [ledOpen,      setLedOpen]      = useState(!!knob.led);
-  const [pickedApp,    setPickedApp]    = useState('');
+export function KnobCard({ index, knob, runningApps = [], sinks = [], sources = [], onChange }: Props) {
+  const [ledOpen, setLedOpen] = useState(!!knob.led);
 
   const update = (patch: Partial<KnobConfig>) => onChange({ ...knob, ...patch });
 
@@ -45,19 +46,6 @@ export function KnobCard({ index, knob, runningApps = [], onChange }: Props) {
       const { led: _dropped, ...rest } = knob;
       onChange(rest as KnobConfig);
     }
-  };
-
-  const datalistId = `knob-${index}-apps`;
-
-  // Add the selected running app to the group_volume targets list
-  const addPickedApp = () => {
-    const app = pickedApp.trim();
-    if (!app) return;
-    const current = knob.targets ?? [];
-    if (!current.includes(app)) {
-      update({ targets: [...current, app] });
-    }
-    setPickedApp('');
   };
 
   return (
@@ -91,57 +79,86 @@ export function KnobCard({ index, knob, runningApps = [], onChange }: Props) {
       {/* Target / Targets */}
       {knob.action === 'group_volume' ? (
         <div>
-          <label htmlFor={`knob-${index}-targets`}>Targets (comma-separated)</label>
-          <textarea
+          <label htmlFor={`knob-${index}-targets`}>
+            Targets
+            {runningApps.length > 0 && (
+              <span className="label-hint"> (ctrl/shift to select multiple)</span>
+            )}
+          </label>
+          <select
             id={`knob-${index}-targets`}
-            value={(knob.targets ?? []).join(', ')}
-            placeholder="spotify, vlc, brave"
+            multiple
+            size={Math.max(3, Math.min(runningApps.length, 6))}
+            value={knob.targets ?? []}
             onChange={(e) =>
               update({
-                targets: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
+                targets: Array.from(e.target.selectedOptions).map((o) => o.value),
               })
             }
-          />
-          {runningApps.length > 0 && (
-            <div className="app-picker">
-              <select
-                value={pickedApp}
-                onChange={(e) => setPickedApp(e.target.value)}
-                aria-label="Pick a running app"
-              >
-                <option value="">— running apps —</option>
-                {runningApps.map((app) => (
-                  <option key={app} value={app}>{app}</option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={addPickedApp}
-                disabled={!pickedApp}
-              >
-                Add
-              </button>
-            </div>
-          )}
+            disabled={runningApps.length === 0}
+            aria-label="Targets"
+          >
+            {runningApps.length === 0 && (
+              <option value="" disabled>— no apps detected —</option>
+            )}
+            {runningApps.map((app) => (
+              <option key={app} value={app}>{app}</option>
+            ))}
+          </select>
         </div>
       ) : (
         <div>
           <label htmlFor={`knob-${index}-target`}>Target</label>
-          <input
-            type="text"
-            id={`knob-${index}-target`}
-            list={runningApps.length > 0 ? datalistId : undefined}
-            value={knob.target ?? 'default'}
-            placeholder="default"
-            onChange={(e) => update({ target: e.target.value })}
-          />
-          {runningApps.length > 0 && (
-            <datalist id={datalistId}>
+          {knob.action === 'sink_volume' ? (
+            <select
+              id={`knob-${index}-target`}
+              value={knob.target ?? 'default'}
+              onChange={(e) => update({ target: e.target.value })}
+              disabled={sinks.length === 0}
+              aria-label="Target"
+            >
+              {sinks.length === 0
+                ? <option value="default">— no devices detected —</option>
+                : sinks.map((d) => (
+                    <option key={d.name} value={d.name}>
+                      {d.description}{d.is_default ? ' (default)' : ''}
+                    </option>
+                  ))
+              }
+            </select>
+          ) : knob.action === 'source_volume' ? (
+            <select
+              id={`knob-${index}-target`}
+              value={knob.target ?? 'default'}
+              onChange={(e) => update({ target: e.target.value })}
+              disabled={sources.length === 0}
+              aria-label="Target"
+            >
+              {sources.length === 0
+                ? <option value="default">— no devices detected —</option>
+                : sources.map((d) => (
+                    <option key={d.name} value={d.name}>
+                      {d.description}{d.is_default ? ' (default)' : ''}
+                    </option>
+                  ))
+              }
+            </select>
+          ) : (
+            /* app_volume */
+            <select
+              id={`knob-${index}-target`}
+              value={knob.target ?? 'default'}
+              onChange={(e) => update({ target: e.target.value })}
+              disabled={runningApps.length === 0}
+              aria-label="Target"
+            >
+              <option value="default">
+                {runningApps.length === 0 ? '— no apps detected —' : '— select an app —'}
+              </option>
               {runningApps.map((app) => (
-                <option key={app} value={app} />
+                <option key={app} value={app}>{app}</option>
               ))}
-            </datalist>
+            </select>
           )}
         </div>
       )}
