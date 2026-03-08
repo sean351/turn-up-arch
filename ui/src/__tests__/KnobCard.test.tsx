@@ -39,12 +39,12 @@ interface RenderOptions {
   runningApps?: string[];
   sinks?:       AudioDevice[];
   sources?:     AudioDevice[];
-  onChange?:    ReturnType<typeof vi.fn>;
+  onChange?:    (knob: KnobConfig) => void;
 }
 
 function renderCard(
   overrides: Partial<KnobConfig> = {},
-  { runningApps, sinks, sources, onChange = vi.fn() }: RenderOptions = {},
+  { runningApps, sinks, sources, onChange = vi.fn() as (knob: KnobConfig) => void }: RenderOptions = {},
 ) {
   const knob: KnobConfig = {
     action: 'app_volume',
