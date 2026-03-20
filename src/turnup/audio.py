@@ -236,13 +236,17 @@ class PulseController:
     def set_app_volume(self, app_name: str, volume: float) -> None:
         volume = max(0.0, min(VOLUME_MAX, volume))
 
-        # Prefer the MPRIS2 path — it writes to the app's internal slider so the
+        # Try the MPRIS2 path — it writes to the app's internal slider so the
         # volume survives song transitions (e.g. Spotify resetting on new tracks).
-        if self._mpris and self._mpris.set_volume(app_name, volume):
-            log.debug("MPRIS set_volume: %r = %.4f", app_name, volume)
-            return
+        # We do NOT return early on success: PA-only apps (Brave, Discord, Electron)
+        # may coincidentally have an MPRIS player whose name matches the needle, but
+        # their actual output volume lives on the PA stream.  Always apply the PA
+        # correction so both MPRIS-capable and PA-only apps are handled correctly.
+        if self._mpris:
+            if self._mpris.set_volume(app_name, volume):
+                log.debug("MPRIS set_volume: %r = %.4f", app_name, volume)
 
-        # Fall back to PulseAudio stream volume.
+        # Apply PulseAudio stream volume (always, not just as MPRIS fallback).
         needle = app_name.lower()
         found  = False
         try:

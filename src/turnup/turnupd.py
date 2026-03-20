@@ -224,25 +224,23 @@ def reapply_app_volumes(config: dict, pulse: PulseController, knob_norms: list[f
     if not app_volumes:
         return
 
-    # Split targets into MPRIS-handled vs PA-only.
+    # Apply MPRIS volume for apps that support it (e.g. Spotify — persists across
+    # song transitions).  Do NOT skip the PA pass for apps where MPRIS succeeds:
+    # PA-only apps (Brave, Discord, Electron) may coincidentally match an MPRIS
+    # player by substring, but their actual output volume lives on the PA stream.
     mpris = pulse._mpris
-    pa_only: dict[str, float] = {}
+    if mpris:
+        for app_name, vol in app_volumes.items():
+            if mpris.set_volume(app_name, vol):
+                log.debug("reapply MPRIS: %r → %.4f", app_name, vol)
 
-    for app_name, vol in app_volumes.items():
-        if mpris and mpris.set_volume(app_name, vol):
-            log.debug("reapply MPRIS: %r → %.4f", app_name, vol)
-        else:
-            pa_only[app_name] = vol
-
-    if not pa_only:
-        return
-
-    # PA stream correction for non-MPRIS apps.
+    # PA stream correction — always applied for all configured targets so that
+    # PA-only apps (Brave, Discord, Electron) are not silently skipped.
     try:
         for inp in pulse._pulse.sink_input_list():
             name   = inp.proplist.get("application.name", "").lower()
             binary = inp.proplist.get("application.process.binary", "").lower()
-            for needle, vol in pa_only.items():
+            for needle, vol in app_volumes.items():
                 if needle in name or needle in binary:
                     current = inp.volume.value_flat
                     if abs(current - vol) > 0.01:

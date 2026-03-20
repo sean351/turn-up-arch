@@ -176,11 +176,27 @@ class TestPulseControllerSetAppVolume:
         mpris.set_volume.return_value = True
 
         pulse = PulseController(mpris=mpris)
+        pulse._pulse.sink_input_list.return_value = []
         pulse.set_app_volume("spotify", 0.6)
 
         mpris.set_volume.assert_called_once_with("spotify", pytest.approx(0.6))
-        # PA stream should NOT be touched.
-        pulse._pulse.sink_input_list.assert_not_called()
+        # PA stream is always checked, even when MPRIS succeeds.
+        pulse._pulse.sink_input_list.assert_called_once()
+
+    def test_pa_applied_even_when_mpris_succeeds(self, mock_pulse_lib):
+        """PA-only apps (Brave, Discord) must have PA volume set even when a
+        coincidentally-matching MPRIS player returns True from set_volume."""
+        mpris = MagicMock(spec=MPRISController)
+        mpris.set_volume.return_value = True  # MPRIS claims success (false positive)
+
+        inp = _make_sink_input("Brave", "brave", 1.0)
+        pulse = PulseController(mpris=mpris)
+        pulse._pulse.sink_input_list.return_value = [inp]
+
+        pulse.set_app_volume("brave", 0.4)
+
+        # PA write must happen regardless of MPRIS success.
+        pulse._pulse.volume_set_all_chans.assert_called_once_with(inp, pytest.approx(0.4))
 
     def test_falls_back_to_pa_when_mpris_fails(self, mock_pulse_lib):
         mpris = MagicMock(spec=MPRISController)
